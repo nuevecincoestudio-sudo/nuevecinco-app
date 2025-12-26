@@ -7,9 +7,7 @@ import {
 } from 'lucide-react';
 
 // Configuración API
-const API_URL = process.env.NODE_ENV === 'production' 
-  ? 'https://nuevecinco-api.netlify.app/.netlify/functions'
-  : 'http://localhost:5000/api';
+const API_URL = '/.netlify/functions/api';
 
 export default function NuevecincoApp() {
   // Estados principales
