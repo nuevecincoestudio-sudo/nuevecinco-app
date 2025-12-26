@@ -2,8 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   Wallet, TrendingUp, TrendingDown, Target, CreditCard, PieChart, 
   X, Trash2, DollarSign, Mail, LogOut, RefreshCw, CheckCircle,
-  ArrowUpCircle, ArrowDownCircle, Plus, Settings, FileText, Download,
-  Calendar, Filter
+  ArrowUpCircle, ArrowDownCircle, Plus, Settings, FileText, Download
 } from 'lucide-react';
 
 export default function NuevecincoApp() {
@@ -22,22 +21,31 @@ export default function NuevecincoApp() {
     { id: 5, categoria: 'Hogar', limite: 600000, color: '#ec4899' },
   ]);
   
-  // CORREGIDO: Metas empiezan en $0
   const [metas, setMetas] = useState([]);
   const [deudas, setDeudas] = useState([]);
 
-  // Formularios - CORREGIDO para evitar refresh
-  const [formTransaccion, setFormTransaccion] = useState({ 
-    tipo: 'gasto', monto: '', categoria: '', descripcion: '', 
-    fecha: new Date().toISOString().split('T')[0] 
-  });
-  const [formPresupuesto, setFormPresupuesto] = useState({ categoria: '', limite: '', color: '#10b981' });
-  const [formMeta, setFormMeta] = useState({ nombre: '', objetivo: '', ahorrado: '0', color: '#10b981' });
-  const [formDeuda, setFormDeuda] = useState({ nombre: '', total: '', pagado: '0', tasaInteres: '', fechaLimite: '' });
-  const [formAporte, setFormAporte] = useState({ monto: '' });
+  // Estados de formularios separados para evitar refresh
+  const [montoInput, setMontoInput] = useState('');
+  const [categoriaInput, setCategoriaInput] = useState('');
+  const [descripcionInput, setDescripcionInput] = useState('');
+  const [fechaInput, setFechaInput] = useState(new Date().toISOString().split('T')[0]);
+  const [tipoInput, setTipoInput] = useState('gasto');
+  
+  const [presupuestoCategoria, setPresupuestoCategoria] = useState('');
+  const [presupuestoLimite, setPresupuestoLimite] = useState('');
+  const [presupuestoColor, setPresupuestoColor] = useState('#10b981');
+  
+  const [metaNombre, setMetaNombre] = useState('');
+  const [metaObjetivo, setMetaObjetivo] = useState('');
+  const [metaAhorrado, setMetaAhorrado] = useState('0');
+  
+  const [deudaNombre, setDeudaNombre] = useState('');
+  const [deudaTotal, setDeudaTotal] = useState('');
+  const [deudaPagado, setDeudaPagado] = useState('0');
+  
+  const [aporteInput, setAporteInput] = useState('');
   const [editingItem, setEditingItem] = useState(null);
   
-  // Estado para reportes
   const [reportePeriodo, setReportePeriodo] = useState('mes');
   const [reporteFecha, setReporteFecha] = useState(new Date().toISOString().split('T')[0]);
 
@@ -55,14 +63,34 @@ export default function NuevecincoApp() {
     const savedDeudas = localStorage.getItem('deudas');
     
     if (tokens) setIsAuthenticated(true);
-    if (savedTransacciones) setTransacciones(JSON.parse(savedTransacciones));
-    if (savedPresupuestos) setPresupuestos(JSON.parse(savedPresupuestos));
-    if (savedMetas) setMetas(JSON.parse(savedMetas));
-    if (savedDeudas) setDeudas(JSON.parse(savedDeudas));
+    if (savedTransacciones) {
+      try {
+        setTransacciones(JSON.parse(savedTransacciones));
+      } catch(e) {
+        console.error('Error loading transacciones:', e);
+      }
+    }
+    if (savedPresupuestos) {
+      try {
+        setPresupuestos(JSON.parse(savedPresupuestos));
+      } catch(e) {}
+    }
+    if (savedMetas) {
+      try {
+        setMetas(JSON.parse(savedMetas));
+      } catch(e) {}
+    }
+    if (savedDeudas) {
+      try {
+        setDeudas(JSON.parse(savedDeudas));
+      } catch(e) {}
+    }
   }, []);
 
   useEffect(() => {
-    if (transacciones.length > 0) localStorage.setItem('transacciones', JSON.stringify(transacciones));
+    if (transacciones.length > 0) {
+      localStorage.setItem('transacciones', JSON.stringify(transacciones));
+    }
   }, [transacciones]);
   
   useEffect(() => {
@@ -86,7 +114,6 @@ export default function NuevecincoApp() {
     }
   }, []);
 
-  // CORREGIDO: Formato de moneda colombiano correcto
   const formatMoney = (amount) => {
     if (amount === undefined || amount === null) return '$0';
     const num = typeof amount === 'string' ? parseFloat(amount) : amount;
@@ -173,7 +200,14 @@ export default function NuevecincoApp() {
       setSyncStatus('syncing');
       
       const savedTokens = tokens || JSON.parse(localStorage.getItem('gmail_tokens'));
-      if (!savedTokens) return;
+      if (!savedTokens) {
+        alert('No hay sesión de Gmail');
+        return;
+      }
+
+      // IMPORTANTE: Buscar desde HOY (27 dic 2025)
+      const hoy = new Date();
+      const fechaDesde = `${hoy.getFullYear()}/${String(hoy.getMonth() + 1).padStart(2, '0')}/${String(hoy.getDate()).padStart(2, '0')}`;
 
       const response = await fetch('/.netlify/functions/api/gmail/transacciones', {
         method: 'POST',
@@ -181,11 +215,12 @@ export default function NuevecincoApp() {
         body: JSON.stringify({
           access_token: savedTokens.access_token,
           refresh_token: savedTokens.refresh_token,
-          desde: '2024/01/01'
+          desde: fechaDesde
         })
       });
 
       const data = await response.json();
+      console.log('Respuesta sync:', data);
       
       if (data.transacciones && data.transacciones.length > 0) {
         const existingIds = new Set(transacciones.map(t => t.id));
@@ -197,14 +232,14 @@ export default function NuevecincoApp() {
             merged.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
             return merged;
           });
-          alert(`Se sincronizaron ${newTransacciones.length} transacciones nuevas`);
+          alert(`✅ Se sincronizaron ${newTransacciones.length} transacciones`);
         } else {
-          alert('No hay transacciones nuevas');
+          alert('No hay transacciones nuevas para sincronizar');
         }
         setSyncStatus('success');
       } else {
-        alert('No se encontraron transacciones');
-        setSyncStatus('error');
+        alert('No se encontraron transacciones de hoy');
+        setSyncStatus('success');
       }
     } catch (error) {
       console.error('Error syncing:', error);
@@ -217,89 +252,128 @@ export default function NuevecincoApp() {
 
   const handleLogout = () => {
     localStorage.removeItem('gmail_tokens');
+    localStorage.removeItem('transacciones');
     setIsAuthenticated(false);
+    setTransacciones([]);
   };
 
-  // CORREGIDO: Manejar submit sin refresh
-  const handleAddTransaccion = (e) => {
-    if (e) e.preventDefault();
-    if (!formTransaccion.monto || !formTransaccion.categoria) {
+  // CORREGIDO: Agregar transacción sin refresh
+  const handleAddTransaccion = () => {
+    if (!montoInput || !categoriaInput) {
       alert('Por favor completa monto y categoría');
       return;
     }
+    
+    const monto = parseFloat(montoInput);
+    if (isNaN(monto) || monto <= 0) {
+      alert('El monto debe ser un número válido');
+      return;
+    }
+
     const newTrans = { 
-      ...formTransaccion, 
       id: `manual-${Date.now()}`, 
-      monto: parseFloat(formTransaccion.monto),
+      tipo: tipoInput,
+      monto: monto,
+      categoria: categoriaInput,
+      descripcion: descripcionInput || categoriaInput,
+      fecha: fechaInput,
       fuente: 'Manual'
     };
+    
     setTransacciones(prev => [newTrans, ...prev]);
-    setFormTransaccion({ tipo: 'gasto', monto: '', categoria: '', descripcion: '', fecha: new Date().toISOString().split('T')[0] });
+    
+    // Limpiar formulario
+    setMontoInput('');
+    setCategoriaInput('');
+    setDescripcionInput('');
+    setFechaInput(new Date().toISOString().split('T')[0]);
     setShowModal(null);
   };
 
-  const handleAddPresupuesto = (e) => {
-    if (e) e.preventDefault();
-    if (!formPresupuesto.categoria || !formPresupuesto.limite) return;
-    const newPres = { ...formPresupuesto, id: Date.now(), limite: parseFloat(formPresupuesto.limite) };
-    setPresupuestos(prev => [...prev, newPres]);
-    setFormPresupuesto({ categoria: '', limite: '', color: '#10b981' });
-    setShowModal(null);
-  };
-
-  const handleAddMeta = (e) => {
-    if (e) e.preventDefault();
-    if (!formMeta.nombre || !formMeta.objetivo) return;
-    const newMeta = { 
-      ...formMeta, 
+  const handleAddPresupuesto = () => {
+    if (!presupuestoCategoria || !presupuestoLimite) {
+      alert('Por favor completa categoría y límite');
+      return;
+    }
+    const newPres = { 
       id: Date.now(), 
-      objetivo: parseFloat(formMeta.objetivo), 
-      ahorrado: parseFloat(formMeta.ahorrado || 0) 
+      categoria: presupuestoCategoria,
+      limite: parseFloat(presupuestoLimite),
+      color: presupuestoColor
+    };
+    setPresupuestos(prev => [...prev, newPres]);
+    setPresupuestoCategoria('');
+    setPresupuestoLimite('');
+    setPresupuestoColor('#10b981');
+    setShowModal(null);
+  };
+
+  const handleAddMeta = () => {
+    if (!metaNombre || !metaObjetivo) {
+      alert('Por favor completa nombre y objetivo');
+      return;
+    }
+    const newMeta = { 
+      id: Date.now(), 
+      nombre: metaNombre,
+      objetivo: parseFloat(metaObjetivo), 
+      ahorrado: parseFloat(metaAhorrado || 0),
+      color: '#10b981'
     };
     setMetas(prev => [...prev, newMeta]);
-    setFormMeta({ nombre: '', objetivo: '', ahorrado: '0', color: '#10b981' });
+    setMetaNombre('');
+    setMetaObjetivo('');
+    setMetaAhorrado('0');
     setShowModal(null);
   };
 
-  const handleAddDeuda = (e) => {
-    if (e) e.preventDefault();
-    if (!formDeuda.nombre || !formDeuda.total) return;
+  const handleAddDeuda = () => {
+    if (!deudaNombre || !deudaTotal) {
+      alert('Por favor completa nombre y total');
+      return;
+    }
     const newDeuda = { 
-      ...formDeuda, 
       id: Date.now(), 
-      total: parseFloat(formDeuda.total), 
-      pagado: parseFloat(formDeuda.pagado || 0), 
-      tasaInteres: parseFloat(formDeuda.tasaInteres || 0) 
+      nombre: deudaNombre,
+      total: parseFloat(deudaTotal), 
+      pagado: parseFloat(deudaPagado || 0)
     };
     setDeudas(prev => [...prev, newDeuda]);
-    setFormDeuda({ nombre: '', total: '', pagado: '0', tasaInteres: '', fechaLimite: '' });
+    setDeudaNombre('');
+    setDeudaTotal('');
+    setDeudaPagado('0');
     setShowModal(null);
   };
 
   const handleAporteMeta = (metaId) => {
-    if (!formAporte.monto) return;
-    setMetas(metas.map(m => m.id === metaId ? { ...m, ahorrado: (m.ahorrado || 0) + parseFloat(formAporte.monto) } : m));
-    setFormAporte({ monto: '' });
+    if (!aporteInput) return;
+    const aporte = parseFloat(aporteInput);
+    if (isNaN(aporte) || aporte <= 0) return;
+    
+    setMetas(metas.map(m => m.id === metaId ? { ...m, ahorrado: (m.ahorrado || 0) + aporte } : m));
+    setAporteInput('');
     setShowModal(null);
     setEditingItem(null);
   };
 
   const handlePagoDeuda = (deudaId) => {
-    if (!formAporte.monto) return;
-    setDeudas(deudas.map(d => d.id === deudaId ? { ...d, pagado: (d.pagado || 0) + parseFloat(formAporte.monto) } : d));
-    setFormAporte({ monto: '' });
+    if (!aporteInput) return;
+    const pago = parseFloat(aporteInput);
+    if (isNaN(pago) || pago <= 0) return;
+    
+    setDeudas(deudas.map(d => d.id === deudaId ? { ...d, pagado: (d.pagado || 0) + pago } : d));
+    setAporteInput('');
     setShowModal(null);
     setEditingItem(null);
   };
 
   const deleteItem = (type, id) => {
-    if (type === 'transaccion') setTransacciones(transacciones.filter(t => t.id !== id));
-    if (type === 'presupuesto') setPresupuestos(presupuestos.filter(p => p.id !== id));
-    if (type === 'meta') setMetas(metas.filter(m => m.id !== id));
-    if (type === 'deuda') setDeudas(deudas.filter(d => d.id !== id));
+    if (type === 'transaccion') setTransacciones(prev => prev.filter(t => t.id !== id));
+    if (type === 'presupuesto') setPresupuestos(prev => prev.filter(p => p.id !== id));
+    if (type === 'meta') setMetas(prev => prev.filter(m => m.id !== id));
+    if (type === 'deuda') setDeudas(prev => prev.filter(d => d.id !== id));
   };
 
-  // NUEVA FUNCIÓN: Filtrar transacciones por periodo
   const getTransaccionesPorPeriodo = (periodo, fecha) => {
     const fechaRef = new Date(fecha);
     return transacciones.filter(t => {
@@ -316,13 +390,11 @@ export default function NuevecincoApp() {
     });
   };
 
-  // NUEVA FUNCIÓN: Generar reporte
   const generarReporte = (formato) => {
     const transReporte = getTransaccionesPorPeriodo(reportePeriodo, reporteFecha);
     const ingresos = transReporte.filter(t => t.tipo === 'ingreso').reduce((sum, t) => sum + (t.monto || 0), 0);
     const gastos = transReporte.filter(t => t.tipo === 'gasto').reduce((sum, t) => sum + (t.monto || 0), 0);
     
-    // Agrupar por categoría
     const porCategoria = {};
     transReporte.filter(t => t.tipo === 'gasto').forEach(t => {
       porCategoria[t.categoria] = (porCategoria[t.categoria] || 0) + (t.monto || 0);
@@ -333,7 +405,6 @@ export default function NuevecincoApp() {
                          new Date(reporteFecha).getFullYear().toString();
 
     if (formato === 'pdf') {
-      // Generar contenido HTML para PDF
       const htmlContent = `
         <!DOCTYPE html>
         <html>
@@ -344,8 +415,8 @@ export default function NuevecincoApp() {
             body { font-family: Arial, sans-serif; padding: 40px; color: #333; }
             h1 { color: #10b981; border-bottom: 3px solid #10b981; padding-bottom: 10px; }
             h2 { color: #374151; margin-top: 30px; }
-            .resumen { display: flex; gap: 20px; margin: 20px 0; }
-            .card { background: #f3f4f6; padding: 20px; border-radius: 10px; flex: 1; }
+            .resumen { display: flex; gap: 20px; margin: 20px 0; flex-wrap: wrap; }
+            .card { background: #f3f4f6; padding: 20px; border-radius: 10px; flex: 1; min-width: 150px; }
             .card.ingreso { background: #d1fae5; }
             .card.gasto { background: #fee2e2; }
             .card.balance { background: #dbeafe; }
@@ -411,9 +482,8 @@ export default function NuevecincoApp() {
               `).join('')}
             </tbody>
           </table>
-
           <p style="margin-top: 40px; text-align: center; color: #9ca3af;">
-            Generado por NUEVECINCO App • ${new Date().getFullYear()}
+            Generado por NUEVECINCO App
           </p>
         </body>
         </html>
@@ -425,26 +495,20 @@ export default function NuevecincoApp() {
       printWindow.print();
 
     } else if (formato === 'csv') {
-      // Generar CSV para Google Sheets
-      let csv = 'Fecha,Tipo,Categoría,Descripción,Monto,Fuente\n';
+      let csv = 'Fecha,Tipo,Categoria,Descripcion,Monto,Fuente\n';
       transReporte.forEach(t => {
         csv += `${t.fecha},${t.tipo},${t.categoria},"${t.descripcion || ''}",${t.monto},${t.fuente || 'Manual'}\n`;
       });
       
-      // Agregar resumen
       csv += '\n\nRESUMEN\n';
       csv += `Total Ingresos,${ingresos}\n`;
       csv += `Total Gastos,${gastos}\n`;
       csv += `Balance,${ingresos - gastos}\n`;
-      csv += '\nGASTOS POR CATEGORÍA\n';
-      Object.entries(porCategoria).forEach(([cat, monto]) => {
-        csv += `${cat},${monto}\n`;
-      });
 
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
       const link = document.createElement('a');
       link.href = URL.createObjectURL(blob);
-      link.download = `NUEVECINCO_Reporte_${periodoTexto.replace(/\s/g, '_')}.csv`;
+      link.download = `NUEVECINCO_${periodoTexto.replace(/\s/g, '_')}.csv`;
       link.click();
     }
     
@@ -458,14 +522,17 @@ export default function NuevecincoApp() {
     </div>
   );
 
-  const ProgressBar = ({ value, max, color, height = 'h-2' }) => (
-    <div className={`w-full bg-gray-100 rounded-full ${height} overflow-hidden`}>
-      <div 
-        className={`${height} rounded-full transition-all duration-700 ease-out`} 
-        style={{ width: `${Math.min((value / max) * 100, 100)}%`, backgroundColor: color }}
-      />
-    </div>
-  );
+  const ProgressBar = ({ value, max, color, height = 'h-2' }) => {
+    const percentage = max > 0 ? Math.min((value / max) * 100, 100) : 0;
+    return (
+      <div className={`w-full bg-gray-100 rounded-full ${height} overflow-hidden`}>
+        <div 
+          className={`${height} rounded-full transition-all duration-700 ease-out`} 
+          style={{ width: `${percentage}%`, backgroundColor: color }}
+        />
+      </div>
+    );
+  };
 
   const Modal = ({ title, children, onClose }) => (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center z-50" onClick={onClose}>
@@ -484,53 +551,6 @@ export default function NuevecincoApp() {
     </div>
   );
 
-  // CORREGIDO: Input sin causar refresh
-  const Input = ({ label, value, onChange, ...props }) => (
-    <div className="mb-4">
-      <label className="block text-sm font-semibold text-gray-700 mb-2">{label}</label>
-      <input 
-        value={value || ''}
-        onChange={onChange}
-        {...props} 
-        className="w-full px-4 py-3.5 bg-gray-50 border-0 rounded-2xl focus:ring-2 focus:ring-emerald-500 focus:bg-white outline-none transition text-gray-900" 
-      />
-    </div>
-  );
-
-  const Select = ({ label, options, value, onChange, ...props }) => (
-    <div className="mb-4">
-      <label className="block text-sm font-semibold text-gray-700 mb-2">{label}</label>
-      <select 
-        value={value || ''}
-        onChange={onChange}
-        {...props} 
-        className="w-full px-4 py-3.5 bg-gray-50 border-0 rounded-2xl focus:ring-2 focus:ring-emerald-500 focus:bg-white outline-none transition text-gray-900 appearance-none"
-      >
-        <option value="">Seleccionar...</option>
-        {options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-      </select>
-    </div>
-  );
-
-  const Button = ({ children, variant = 'primary', type = 'button', onClick, ...props }) => {
-    const styles = {
-      primary: 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-lg shadow-emerald-500/30',
-      secondary: 'bg-gray-100 text-gray-700 hover:bg-gray-200',
-      danger: 'bg-gradient-to-r from-red-500 to-rose-500 text-white shadow-lg shadow-red-500/30',
-    };
-    return (
-      <button 
-        type={type}
-        onClick={onClick}
-        {...props} 
-        className={`w-full py-3.5 px-6 rounded-2xl font-semibold transition-all duration-300 ${styles[variant]} disabled:opacity-50`}
-      >
-        {children}
-      </button>
-    );
-  };
-
-  // Pantalla de Login
   const LoginScreen = () => (
     <div className="min-h-screen bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-500 flex flex-col items-center justify-center p-6">
       <div className="text-center mb-12">
@@ -557,7 +577,6 @@ export default function NuevecincoApp() {
     </div>
   );
 
-  // Tab Inicio
   const TabInicio = () => (
     <div className="space-y-5">
       {isAuthenticated && (
@@ -666,7 +685,7 @@ export default function NuevecincoApp() {
         <div className="space-y-4">
           {presupuestos.slice(0, 3).map(p => {
             const gastado = getGastosPorCategoria(p.categoria);
-            const porcentaje = (gastado / p.limite) * 100;
+            const porcentaje = p.limite > 0 ? (gastado / p.limite) * 100 : 0;
             return (
               <div key={p.id}>
                 <div className="flex justify-between text-sm mb-2">
@@ -684,25 +703,23 @@ export default function NuevecincoApp() {
     </div>
   );
 
-  // Tab Transacciones
   const TabTransacciones = () => (
     <div className="space-y-4">
       <div className="flex gap-2">
         <button 
-          onClick={() => { setFormTransaccion({...formTransaccion, tipo: 'gasto'}); setShowModal('transaccion'); }} 
+          onClick={() => { setTipoInput('gasto'); setShowModal('transaccion'); }} 
           className="flex-1 py-3.5 bg-red-50 text-red-600 rounded-2xl font-semibold flex items-center justify-center gap-2"
         >
           <TrendingDown size={18} /> Gasto
         </button>
         <button 
-          onClick={() => { setFormTransaccion({...formTransaccion, tipo: 'ingreso'}); setShowModal('transaccion'); }} 
+          onClick={() => { setTipoInput('ingreso'); setShowModal('transaccion'); }} 
           className="flex-1 py-3.5 bg-emerald-50 text-emerald-600 rounded-2xl font-semibold flex items-center justify-center gap-2"
         >
           <TrendingUp size={18} /> Ingreso
         </button>
       </div>
       
-      {/* Botón de reportes */}
       <button 
         onClick={() => setShowModal('reportes')} 
         className="w-full py-3 bg-blue-50 text-blue-600 rounded-2xl font-semibold flex items-center justify-center gap-2"
@@ -711,7 +728,7 @@ export default function NuevecincoApp() {
       </button>
 
       <Card>
-        <h3 className="font-bold text-gray-900 mb-4">Historial ({transacciones.length} transacciones)</h3>
+        <h3 className="font-bold text-gray-900 mb-4">Historial ({transacciones.length})</h3>
         <div className="space-y-2">
           {transacciones.map(t => (
             <div key={t.id} className="flex items-center justify-between py-3 border-b border-gray-50 last:border-0">
@@ -721,7 +738,7 @@ export default function NuevecincoApp() {
                 </div>
                 <div>
                   <p className="font-semibold text-gray-900">{t.categoria}</p>
-                  <p className="text-sm text-gray-500 truncate max-w-40">{t.descripcion}</p>
+                  <p className="text-sm text-gray-500 truncate max-w-36">{t.descripcion}</p>
                   <p className="text-xs text-gray-400">{formatDate(t.fecha)} • {t.fuente}</p>
                 </div>
               </div>
@@ -740,16 +757,15 @@ export default function NuevecincoApp() {
     </div>
   );
 
-  // Tab Presupuesto
   const TabPresupuesto = () => (
     <div className="space-y-4">
-      <Button onClick={() => setShowModal('presupuesto')}>
-        <Plus size={18} className="inline mr-2" /> Nuevo Presupuesto
-      </Button>
+      <button onClick={() => setShowModal('presupuesto')} className="w-full py-3.5 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-2xl font-semibold flex items-center justify-center gap-2 shadow-lg">
+        <Plus size={18} /> Nuevo Presupuesto
+      </button>
       <div className="space-y-3">
         {presupuestos.map(p => {
           const gastado = getGastosPorCategoria(p.categoria);
-          const porcentaje = (gastado / p.limite) * 100;
+          const porcentaje = p.limite > 0 ? (gastado / p.limite) * 100 : 0;
           const restante = p.limite - gastado;
           return (
             <Card key={p.id}>
@@ -776,12 +792,11 @@ export default function NuevecincoApp() {
     </div>
   );
 
-  // Tab Metas
   const TabMetas = () => (
     <div className="space-y-4">
-      <Button onClick={() => setShowModal('meta')}>
-        <Plus size={18} className="inline mr-2" /> Nueva Meta
-      </Button>
+      <button onClick={() => setShowModal('meta')} className="w-full py-3.5 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-2xl font-semibold flex items-center justify-center gap-2 shadow-lg">
+        <Plus size={18} /> Nueva Meta
+      </button>
       {metas.length === 0 && (
         <div className="text-center py-12 text-gray-400">
           <Target size={48} className="mx-auto mb-3 opacity-50" />
@@ -791,7 +806,7 @@ export default function NuevecincoApp() {
       )}
       <div className="space-y-3">
         {metas.map(m => {
-          const porcentaje = ((m.ahorrado || 0) / m.objetivo) * 100;
+          const porcentaje = m.objetivo > 0 ? ((m.ahorrado || 0) / m.objetivo) * 100 : 0;
           return (
             <Card key={m.id}>
               <div className="flex justify-between items-start mb-3">
@@ -800,7 +815,7 @@ export default function NuevecincoApp() {
                   <p className="text-sm text-gray-500">Meta: {formatMoney(m.objetivo)}</p>
                 </div>
                 <div className="flex gap-1">
-                  <button onClick={() => { setEditingItem(m); setShowModal('aporte-meta'); }} className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-xl">
+                  <button onClick={() => { setEditingItem(m); setAporteInput(''); setShowModal('aporte-meta'); }} className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-xl">
                     <Plus size={16} />
                   </button>
                   <button onClick={() => deleteItem('meta', m.id)} className="p-2 text-gray-300 hover:text-red-500 rounded-xl">
@@ -808,7 +823,7 @@ export default function NuevecincoApp() {
                   </button>
                 </div>
               </div>
-              <ProgressBar value={m.ahorrado || 0} max={m.objetivo} color={m.color} height="h-3" />
+              <ProgressBar value={m.ahorrado || 0} max={m.objetivo} color={m.color || '#10b981'} height="h-3" />
               <div className="flex justify-between mt-3 text-sm">
                 <span className="text-emerald-600 font-semibold">Ahorrado: {formatMoney(m.ahorrado || 0)}</span>
                 <span className="font-bold text-gray-900">{porcentaje.toFixed(0)}%</span>
@@ -820,12 +835,11 @@ export default function NuevecincoApp() {
     </div>
   );
 
-  // Tab Deudas
   const TabDeudas = () => (
     <div className="space-y-4">
-      <Button onClick={() => setShowModal('deuda')} variant="danger">
-        <Plus size={18} className="inline mr-2" /> Nueva Deuda
-      </Button>
+      <button onClick={() => setShowModal('deuda')} className="w-full py-3.5 bg-gradient-to-r from-red-500 to-rose-500 text-white rounded-2xl font-semibold flex items-center justify-center gap-2 shadow-lg">
+        <Plus size={18} /> Nueva Deuda
+      </button>
       {totalDeuda > 0 && (
         <Card className="bg-red-50 border-red-100">
           <div className="flex items-center gap-3">
@@ -854,7 +868,7 @@ export default function NuevecincoApp() {
                   <p className="text-sm text-gray-500">Total: {formatMoney(d.total)}</p>
                 </div>
                 <div className="flex gap-1">
-                  <button onClick={() => { setEditingItem(d); setShowModal('pago-deuda'); }} className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-xl">
+                  <button onClick={() => { setEditingItem(d); setAporteInput(''); setShowModal('pago-deuda'); }} className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-xl">
                     <DollarSign size={16} />
                   </button>
                   <button onClick={() => deleteItem('deuda', d.id)} className="p-2 text-gray-300 hover:text-red-500 rounded-xl">
@@ -912,7 +926,7 @@ export default function NuevecincoApp() {
       </div>
 
       <button
-        onClick={() => setShowModal('transaccion')}
+        onClick={() => { setTipoInput('gasto'); setShowModal('transaccion'); }}
         className="fixed bottom-24 right-4 w-14 h-14 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full shadow-lg flex items-center justify-center text-white z-40"
       >
         <Plus size={26} />
@@ -933,78 +947,277 @@ export default function NuevecincoApp() {
         </div>
       </div>
 
-      {/* MODALES */}
+      {/* Modal Transacción - CORREGIDO */}
       {showModal === 'transaccion' && (
-        <Modal title={formTransaccion.tipo === 'ingreso' ? '💵 Nuevo Ingreso' : '💸 Nuevo Gasto'} onClose={() => setShowModal(null)}>
-          <form onSubmit={handleAddTransaccion}>
-            <div className="flex gap-2 mb-5">
-              <button type="button" onClick={() => setFormTransaccion({...formTransaccion, tipo: 'gasto'})} className={`flex-1 py-3 rounded-xl font-semibold ${formTransaccion.tipo === 'gasto' ? 'bg-red-500 text-white' : 'bg-gray-100'}`}>Gasto</button>
-              <button type="button" onClick={() => setFormTransaccion({...formTransaccion, tipo: 'ingreso'})} className={`flex-1 py-3 rounded-xl font-semibold ${formTransaccion.tipo === 'ingreso' ? 'bg-emerald-500 text-white' : 'bg-gray-100'}`}>Ingreso</button>
+        <Modal title={tipoInput === 'ingreso' ? '💵 Nuevo Ingreso' : '💸 Nuevo Gasto'} onClose={() => setShowModal(null)}>
+          <div className="space-y-4">
+            <div className="flex gap-2 mb-2">
+              <button 
+                type="button" 
+                onClick={() => setTipoInput('gasto')} 
+                className={`flex-1 py-3 rounded-xl font-semibold ${tipoInput === 'gasto' ? 'bg-red-500 text-white' : 'bg-gray-100'}`}
+              >
+                Gasto
+              </button>
+              <button 
+                type="button" 
+                onClick={() => setTipoInput('ingreso')} 
+                className={`flex-1 py-3 rounded-xl font-semibold ${tipoInput === 'ingreso' ? 'bg-emerald-500 text-white' : 'bg-gray-100'}`}
+              >
+                Ingreso
+              </button>
             </div>
-            <Input label="Monto" type="number" inputMode="numeric" placeholder="50000" value={formTransaccion.monto} onChange={e => setFormTransaccion({...formTransaccion, monto: e.target.value})} />
-            <Select label="Categoría" options={categorias} value={formTransaccion.categoria} onChange={e => setFormTransaccion({...formTransaccion, categoria: e.target.value})} />
-            <Input label="Descripción" placeholder="Descripción del movimiento" value={formTransaccion.descripcion} onChange={e => setFormTransaccion({...formTransaccion, descripcion: e.target.value})} />
-            <Input label="Fecha" type="date" value={formTransaccion.fecha} onChange={e => setFormTransaccion({...formTransaccion, fecha: e.target.value})} />
-            <Button type="submit" variant={formTransaccion.tipo === 'ingreso' ? 'primary' : 'danger'}>Guardar</Button>
-          </form>
+            
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Monto</label>
+              <input 
+                type="number"
+                inputMode="numeric"
+                placeholder="50000"
+                value={montoInput}
+                onChange={(e) => setMontoInput(e.target.value)}
+                className="w-full px-4 py-3.5 bg-gray-50 border-0 rounded-2xl focus:ring-2 focus:ring-emerald-500 outline-none text-gray-900 text-lg"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Categoría</label>
+              <select 
+                value={categoriaInput}
+                onChange={(e) => setCategoriaInput(e.target.value)}
+                className="w-full px-4 py-3.5 bg-gray-50 border-0 rounded-2xl focus:ring-2 focus:ring-emerald-500 outline-none text-gray-900"
+              >
+                <option value="">Seleccionar...</option>
+                {categorias.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+              </select>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Descripción</label>
+              <input 
+                type="text"
+                placeholder="Descripción del movimiento"
+                value={descripcionInput}
+                onChange={(e) => setDescripcionInput(e.target.value)}
+                className="w-full px-4 py-3.5 bg-gray-50 border-0 rounded-2xl focus:ring-2 focus:ring-emerald-500 outline-none text-gray-900"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Fecha</label>
+              <input 
+                type="date"
+                value={fechaInput}
+                onChange={(e) => setFechaInput(e.target.value)}
+                className="w-full px-4 py-3.5 bg-gray-50 border-0 rounded-2xl focus:ring-2 focus:ring-emerald-500 outline-none text-gray-900"
+              />
+            </div>
+            
+            <button 
+              type="button"
+              onClick={handleAddTransaccion}
+              className={`w-full py-3.5 rounded-2xl font-semibold text-white shadow-lg ${tipoInput === 'ingreso' ? 'bg-gradient-to-r from-emerald-500 to-teal-500' : 'bg-gradient-to-r from-red-500 to-rose-500'}`}
+            >
+              Guardar
+            </button>
+          </div>
         </Modal>
       )}
 
       {showModal === 'presupuesto' && (
         <Modal title="📊 Nuevo Presupuesto" onClose={() => setShowModal(null)}>
-          <form onSubmit={handleAddPresupuesto}>
-            <Select label="Categoría" options={categorias.filter(c => !presupuestos.find(p => p.categoria === c))} value={formPresupuesto.categoria} onChange={e => setFormPresupuesto({...formPresupuesto, categoria: e.target.value})} />
-            <Input label="Límite Mensual" type="number" inputMode="numeric" placeholder="500000" value={formPresupuesto.limite} onChange={e => setFormPresupuesto({...formPresupuesto, limite: e.target.value})} />
-            <div className="mb-5">
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Color</label>
-              <input type="color" value={formPresupuesto.color} onChange={e => setFormPresupuesto({...formPresupuesto, color: e.target.value})} className="w-full h-14 rounded-2xl cursor-pointer" />
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Categoría</label>
+              <select 
+                value={presupuestoCategoria}
+                onChange={(e) => setPresupuestoCategoria(e.target.value)}
+                className="w-full px-4 py-3.5 bg-gray-50 border-0 rounded-2xl outline-none text-gray-900"
+              >
+                <option value="">Seleccionar...</option>
+                {categorias.filter(c => !presupuestos.find(p => p.categoria === c)).map(cat => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
+              </select>
             </div>
-            <Button type="submit">Guardar Presupuesto</Button>
-          </form>
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Límite Mensual</label>
+              <input 
+                type="number"
+                inputMode="numeric"
+                placeholder="500000"
+                value={presupuestoLimite}
+                onChange={(e) => setPresupuestoLimite(e.target.value)}
+                className="w-full px-4 py-3.5 bg-gray-50 border-0 rounded-2xl outline-none text-gray-900"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Color</label>
+              <input 
+                type="color" 
+                value={presupuestoColor} 
+                onChange={(e) => setPresupuestoColor(e.target.value)} 
+                className="w-full h-14 rounded-2xl cursor-pointer" 
+              />
+            </div>
+            <button 
+              type="button"
+              onClick={handleAddPresupuesto}
+              className="w-full py-3.5 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-2xl font-semibold shadow-lg"
+            >
+              Guardar Presupuesto
+            </button>
+          </div>
         </Modal>
       )}
 
       {showModal === 'meta' && (
         <Modal title="🎯 Nueva Meta de Ahorro" onClose={() => setShowModal(null)}>
-          <form onSubmit={handleAddMeta}>
-            <Input label="Nombre de la meta" placeholder="Vacaciones, Auto, etc." value={formMeta.nombre} onChange={e => setFormMeta({...formMeta, nombre: e.target.value})} />
-            <Input label="Monto objetivo" type="number" inputMode="numeric" placeholder="5000000" value={formMeta.objetivo} onChange={e => setFormMeta({...formMeta, objetivo: e.target.value})} />
-            <Input label="Monto inicial ahorrado" type="number" inputMode="numeric" placeholder="0" value={formMeta.ahorrado} onChange={e => setFormMeta({...formMeta, ahorrado: e.target.value})} />
-            <Button type="submit">Crear Meta</Button>
-          </form>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Nombre</label>
+              <input 
+                type="text"
+                placeholder="Vacaciones, Auto, etc."
+                value={metaNombre}
+                onChange={(e) => setMetaNombre(e.target.value)}
+                className="w-full px-4 py-3.5 bg-gray-50 border-0 rounded-2xl outline-none text-gray-900"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Monto Objetivo</label>
+              <input 
+                type="number"
+                inputMode="numeric"
+                placeholder="5000000"
+                value={metaObjetivo}
+                onChange={(e) => setMetaObjetivo(e.target.value)}
+                className="w-full px-4 py-3.5 bg-gray-50 border-0 rounded-2xl outline-none text-gray-900"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Ya Ahorrado</label>
+              <input 
+                type="number"
+                inputMode="numeric"
+                placeholder="0"
+                value={metaAhorrado}
+                onChange={(e) => setMetaAhorrado(e.target.value)}
+                className="w-full px-4 py-3.5 bg-gray-50 border-0 rounded-2xl outline-none text-gray-900"
+              />
+            </div>
+            <button 
+              type="button"
+              onClick={handleAddMeta}
+              className="w-full py-3.5 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-2xl font-semibold shadow-lg"
+            >
+              Crear Meta
+            </button>
+          </div>
         </Modal>
       )}
 
       {showModal === 'deuda' && (
         <Modal title="💳 Nueva Deuda" onClose={() => setShowModal(null)}>
-          <form onSubmit={handleAddDeuda}>
-            <Input label="Nombre" placeholder="Tarjeta Visa, Préstamo" value={formDeuda.nombre} onChange={e => setFormDeuda({...formDeuda, nombre: e.target.value})} />
-            <Input label="Monto Total" type="number" inputMode="numeric" placeholder="1000000" value={formDeuda.total} onChange={e => setFormDeuda({...formDeuda, total: e.target.value})} />
-            <Input label="Ya pagado" type="number" inputMode="numeric" placeholder="0" value={formDeuda.pagado} onChange={e => setFormDeuda({...formDeuda, pagado: e.target.value})} />
-            <Button type="submit" variant="danger">Agregar Deuda</Button>
-          </form>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Nombre</label>
+              <input 
+                type="text"
+                placeholder="Tarjeta Visa, Préstamo"
+                value={deudaNombre}
+                onChange={(e) => setDeudaNombre(e.target.value)}
+                className="w-full px-4 py-3.5 bg-gray-50 border-0 rounded-2xl outline-none text-gray-900"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Monto Total</label>
+              <input 
+                type="number"
+                inputMode="numeric"
+                placeholder="1000000"
+                value={deudaTotal}
+                onChange={(e) => setDeudaTotal(e.target.value)}
+                className="w-full px-4 py-3.5 bg-gray-50 border-0 rounded-2xl outline-none text-gray-900"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Ya Pagado</label>
+              <input 
+                type="number"
+                inputMode="numeric"
+                placeholder="0"
+                value={deudaPagado}
+                onChange={(e) => setDeudaPagado(e.target.value)}
+                className="w-full px-4 py-3.5 bg-gray-50 border-0 rounded-2xl outline-none text-gray-900"
+              />
+            </div>
+            <button 
+              type="button"
+              onClick={handleAddDeuda}
+              className="w-full py-3.5 bg-gradient-to-r from-red-500 to-rose-500 text-white rounded-2xl font-semibold shadow-lg"
+            >
+              Agregar Deuda
+            </button>
+          </div>
         </Modal>
       )}
 
       {showModal === 'aporte-meta' && editingItem && (
         <Modal title={`💰 Aportar a: ${editingItem.nombre}`} onClose={() => { setShowModal(null); setEditingItem(null); }}>
-          <div className="text-center mb-5 p-4 bg-emerald-50 rounded-2xl">
-            <p className="text-gray-500 text-sm">Ahorrado actual</p>
-            <p className="text-3xl font-black text-emerald-600">{formatMoney(editingItem.ahorrado || 0)}</p>
+          <div className="space-y-4">
+            <div className="text-center p-4 bg-emerald-50 rounded-2xl">
+              <p className="text-gray-500 text-sm">Ahorrado actual</p>
+              <p className="text-3xl font-black text-emerald-600">{formatMoney(editingItem.ahorrado || 0)}</p>
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Monto a aportar</label>
+              <input 
+                type="number"
+                inputMode="numeric"
+                placeholder="100000"
+                value={aporteInput}
+                onChange={(e) => setAporteInput(e.target.value)}
+                className="w-full px-4 py-3.5 bg-gray-50 border-0 rounded-2xl outline-none text-gray-900"
+              />
+            </div>
+            <button 
+              type="button"
+              onClick={() => handleAporteMeta(editingItem.id)}
+              className="w-full py-3.5 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-2xl font-semibold shadow-lg"
+            >
+              Agregar Aporte
+            </button>
           </div>
-          <Input label="Monto a aportar" type="number" inputMode="numeric" placeholder="100000" value={formAporte.monto} onChange={e => setFormAporte({monto: e.target.value})} />
-          <Button onClick={() => handleAporteMeta(editingItem.id)}>Agregar Aporte</Button>
         </Modal>
       )}
 
       {showModal === 'pago-deuda' && editingItem && (
         <Modal title={`💳 Pagar: ${editingItem.nombre}`} onClose={() => { setShowModal(null); setEditingItem(null); }}>
-          <div className="text-center mb-5 p-4 bg-red-50 rounded-2xl">
-            <p className="text-gray-500 text-sm">Pendiente</p>
-            <p className="text-3xl font-black text-red-500">{formatMoney((editingItem.total || 0) - (editingItem.pagado || 0))}</p>
+          <div className="space-y-4">
+            <div className="text-center p-4 bg-red-50 rounded-2xl">
+              <p className="text-gray-500 text-sm">Pendiente</p>
+              <p className="text-3xl font-black text-red-500">{formatMoney((editingItem.total || 0) - (editingItem.pagado || 0))}</p>
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Monto a pagar</label>
+              <input 
+                type="number"
+                inputMode="numeric"
+                placeholder="50000"
+                value={aporteInput}
+                onChange={(e) => setAporteInput(e.target.value)}
+                className="w-full px-4 py-3.5 bg-gray-50 border-0 rounded-2xl outline-none text-gray-900"
+              />
+            </div>
+            <button 
+              type="button"
+              onClick={() => handlePagoDeuda(editingItem.id)}
+              className="w-full py-3.5 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-2xl font-semibold shadow-lg"
+            >
+              Registrar Pago
+            </button>
           </div>
-          <Input label="Monto a pagar" type="number" inputMode="numeric" placeholder="50000" value={formAporte.monto} onChange={e => setFormAporte({monto: e.target.value})} />
-          <Button onClick={() => handlePagoDeuda(editingItem.id)}>Registrar Pago</Button>
         </Modal>
       )}
 
@@ -1015,22 +1228,43 @@ export default function NuevecincoApp() {
               <label className="block text-sm font-semibold text-gray-700 mb-2">Periodo</label>
               <div className="flex gap-2">
                 {[{id: 'dia', label: 'Día'}, {id: 'mes', label: 'Mes'}, {id: 'anio', label: 'Año'}].map(p => (
-                  <button key={p.id} type="button" onClick={() => setReportePeriodo(p.id)} className={`flex-1 py-2 rounded-xl font-medium ${reportePeriodo === p.id ? 'bg-emerald-500 text-white' : 'bg-gray-100'}`}>
+                  <button 
+                    key={p.id} 
+                    type="button" 
+                    onClick={() => setReportePeriodo(p.id)} 
+                    className={`flex-1 py-2 rounded-xl font-medium ${reportePeriodo === p.id ? 'bg-emerald-500 text-white' : 'bg-gray-100'}`}
+                  >
                     {p.label}
                   </button>
                 ))}
               </div>
             </div>
-            <Input label="Fecha de referencia" type="date" value={reporteFecha} onChange={e => setReporteFecha(e.target.value)} />
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Fecha</label>
+              <input 
+                type="date" 
+                value={reporteFecha} 
+                onChange={(e) => setReporteFecha(e.target.value)}
+                className="w-full px-4 py-3.5 bg-gray-50 border-0 rounded-2xl outline-none text-gray-900"
+              />
+            </div>
             <p className="text-sm text-gray-500 text-center">
-              {getTransaccionesPorPeriodo(reportePeriodo, reporteFecha).length} transacciones en este periodo
+              {getTransaccionesPorPeriodo(reportePeriodo, reporteFecha).length} transacciones
             </p>
             <div className="flex gap-2">
-              <button type="button" onClick={() => generarReporte('pdf')} className="flex-1 py-3 bg-red-50 text-red-600 rounded-xl font-semibold flex items-center justify-center gap-2">
+              <button 
+                type="button" 
+                onClick={() => generarReporte('pdf')} 
+                className="flex-1 py-3 bg-red-50 text-red-600 rounded-xl font-semibold flex items-center justify-center gap-2"
+              >
                 <FileText size={18} /> PDF
               </button>
-              <button type="button" onClick={() => generarReporte('csv')} className="flex-1 py-3 bg-green-50 text-green-600 rounded-xl font-semibold flex items-center justify-center gap-2">
-                <Download size={18} /> CSV/Sheets
+              <button 
+                type="button" 
+                onClick={() => generarReporte('csv')} 
+                className="flex-1 py-3 bg-green-50 text-green-600 rounded-xl font-semibold flex items-center justify-center gap-2"
+              >
+                <Download size={18} /> CSV
               </button>
             </div>
           </div>
@@ -1048,12 +1282,21 @@ export default function NuevecincoApp() {
                   <p className="text-sm text-gray-500">Sincronización activa</p>
                 </div>
               </div>
-              <button type="button" onClick={() => syncTransacciones()} disabled={isLoading} className="w-full py-2.5 bg-white border rounded-xl text-sm font-medium flex items-center justify-center gap-2">
-                <RefreshCw size={16} className={isLoading ? 'animate-spin' : ''} /> Sincronizar ahora
+              <button 
+                type="button" 
+                onClick={() => syncTransacciones()} 
+                disabled={isLoading} 
+                className="w-full py-2.5 bg-white border rounded-xl text-sm font-medium flex items-center justify-center gap-2"
+              >
+                <RefreshCw size={16} className={isLoading ? 'animate-spin' : ''} /> Sincronizar
               </button>
             </div>
-            <button type="button" onClick={handleLogout} className="w-full py-3 bg-red-50 text-red-600 rounded-xl font-medium flex items-center justify-center gap-2">
-              <LogOut size={18} /> Cerrar sesión
+            <button 
+              type="button" 
+              onClick={handleLogout} 
+              className="w-full py-3 bg-red-50 text-red-600 rounded-xl font-medium flex items-center justify-center gap-2"
+            >
+              <LogOut size={18} /> Cerrar sesión (borra datos)
             </button>
           </div>
         </Modal>
