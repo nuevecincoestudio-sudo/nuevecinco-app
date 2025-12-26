@@ -6,9 +6,6 @@ import {
   ChevronRight, Calendar, Filter, Download, Smartphone, Zap
 } from 'lucide-react';
 
-// Configuración API
-const API_URL = '/.netlify/functions/api';
-
 export default function NuevecincoApp() {
   // Estados principales
   const [activeTab, setActiveTab] = useState('inicio');
@@ -135,7 +132,7 @@ export default function NuevecincoApp() {
   const handleGmailLogin = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch(`${API_URL}/auth/url`);
+      const response = await fetch('/.netlify/functions/api/auth/url');
       const data = await response.json();
       window.location.href = data.url;
     } catch (error) {
@@ -148,7 +145,7 @@ export default function NuevecincoApp() {
   const handleAuthCallback = async (code) => {
     try {
       setIsLoading(true);
-      const response = await fetch(`${API_URL}/auth/token`, {
+      const response = await fetch('/.netlify/functions/api/auth/token', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code })
@@ -177,7 +174,7 @@ export default function NuevecincoApp() {
       const savedTokens = tokens || JSON.parse(localStorage.getItem('gmail_tokens'));
       if (!savedTokens) return;
 
-      const response = await fetch(`${API_URL}/gmail/transacciones`, {
+      const response = await fetch('/.netlify/functions/api/gmail/transacciones', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
