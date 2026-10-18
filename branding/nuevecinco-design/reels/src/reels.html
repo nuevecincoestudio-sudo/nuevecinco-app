@@ -207,8 +207,73 @@ ia:{dur:12.5,draw(t){
     x.save();x.globalAlpha*=ba;rr(150,1460,780,130,40,CREAM);
     txt('hola, soy el avatar de tu marca',540,1540,40,700,INK,'center',1);x.restore();
     x.restore()}
-  outro(t,this.dur,true)}}
+  outro(t,this.dur,true)}},
+
+// 6 · resumen de marca: gancho, logo, 5 servicios, cierre
+resumen:{dur:20,draw(t){
+  // 0–1.9 s · gancho: frase cinética sobre naranja
+  if(t<2.1){bg(ORANGE);
+    const W1=[['todo lo que',.0],['tu marca',.3],['muestra,',.6]];
+    W1.forEach(([w,s],i)=>{const v=eo(seg(t,s,s+.25));txt(w,90,640+i*170,150,800,INK,'left',v,-5)});
+    const v2=back(seg(t,1.0,1.35));x.save();x.translate(90,1260);x.scale(1,cl(v2));txt('lo diseñamos.',0,0,150,800,CREAM,'left',cl(v2*2),-5);x.restore();
+    wipe(t,1.8,2.1,CREAM);return}
+  // 2.1–3.6 s · logo
+  if(t<3.6){bg(CREAM);logo(W/2,880,.82,{p:seg(t,2.1,3.0),ta:seg(t,2.9,3.2)});
+    txt('nuevecinco diseño',W/2,1440,60,800,INK,'center',seg(t,3.0,3.3),-1);wipe(t,3.35,3.6,ORANGE);rr(-40,H-(H+200)*eio(seg(t,3.5,3.6)),W+80,H+400,120,CREAM);return}
+  // 3.6–15.6 s · cinco servicios, 2.4 s cada uno
+  const S=['diseño para redes sociales','diseño web','identidad de marca','animación','renderizado'];
+  if(t<15.6){const i=Math.floor((t-3.6)/2.4),lt=(t-3.6)-i*2.4;
+    const dark=i===1||i===4,orange=i===3,fg=orange?INK:dark?CREAM:INK;
+    bg(orange?ORANGE:dark?INK:CREAM);
+    txt(`${i+1}/5`,90,190,34,700,orange?INK:dark?MUTED_D:MUTED,'left',seg(lt,0,.2),3);
+    const words=S[i].split(' ');let ly=330;const fs=S[i].length>14?104:128;
+    const lines=[];let cur='';words.forEach(w=>{const tt=(cur?cur+' ':'')+w;if(tt.length>12&&cur){lines.push(cur);cur=w}else cur=tt});lines.push(cur);
+    lines.forEach((l,k)=>txt(l,90,ly+k*(fs*.95),fs,800,fg,'left',eo(seg(lt,.05+k*.12,.35+k*.12)),-4));
+    const v=seg(lt,.25,1.6);
+    x.save();
+    if(i===0){ // redes: teléfono con cuadrícula que se llena
+      const px=290,py=760,pw=500,ph=900;rr(px-12,py-12,pw+24,ph+24,64,INK);rr(px,py,pw,ph,54,'#fff');
+      rr(px+30,py+40,70,70,35,ORANGE);rr(px+120,py+56,180,18,9,INK);rr(px+120,py+86,120,14,7,LINE);
+      const cols=[INK,ORANGE,LINE,CREAM,INK,INK,ORANGE,LINE,INK];
+      cols.forEach((col,k)=>{const a=back(seg(lt,.3+k*.09,.6+k*.09));if(a<=0)return;const cx=px+28+(k%3)*150,cy=py+150+Math.floor(k/3)*150;
+        x.save();x.translate(cx+70,cy+70);x.scale(cl(a)*.98+.02,cl(a)*.98+.02);rr(-70,-70,140,140,16,col);if(k===1||k===6){x.fillStyle=CREAM;x.save();x.scale(.18,.18);x.translate(-1308,-1131);x.fill(PD);x.restore()}x.restore()});
+      const hv=seg(lt,1.5,1.9);if(hv>0){x.globalAlpha=1-seg(lt,2.1,2.4);txt('+ 248',px+pw-30,py+720,44,800,ORANGE,'right',hv)}}
+    if(i===1){ // web: ventana de escritorio que se arma
+      const px=90,py=820,pw=900,ph=640;rr(px,py,pw,ph,28,'#2E2E2B');rr(px,py,pw,58,28,'#3A3A37');
+      [0,1,2].forEach(k=>rr(px+28+k*32,py+20,18,18,9,k===0?ORANGE:MUTED_D));
+      const B=[[30,90,160,24,CREAM],[650,92,220,20,MUTED_D],[30,150,840,240,ORANGE],[30,420,520,36,CREAM],[30,476,440,18,MUTED_D],[30,540,180,60,CREAM],[600,420,270,180,CREAM]];
+      B.forEach(([bx,by,bw,bh,col],k)=>{const a=back(seg(lt,.3+k*.1,.65+k*.1));if(a<=0)return;x.save();x.globalAlpha=cl(a);x.translate(px+bx,py+by+(1-cl(a))*30);rr(0,0,bw,bh,Math.min(14,bh/2),col);x.restore()})}
+    if(i===2){ // identidad: logo + paleta
+      logo(W/2,1050,.62,{p:1,ta:0});
+      [[CREAM,LINE],[INK,INK],[ORANGE,ORANGE]].forEach(([col,st],k)=>{const a=back(seg(lt,.6+k*.15,1.0+k*.15));if(a<=0)return;
+        const sx=200+k*250,sy=1420;x.save();x.translate(sx+90,sy+90);x.scale(cl(a),cl(a));rr(-90,-90,180,180,40,col);if(col===CREAM){x.strokeStyle=LINE;x.lineWidth=4;x.beginPath();x.roundRect(-90,-90,180,180,40);x.stroke()}x.restore()});
+      txt('manrope',W/2,1700,40,700,ORANGE,'center',seg(lt,1.3,1.6),4)}
+    if(i===3){ // animación: módulos que laten
+      for(let k=0;k<6;k++){const ph=Math.sin((t*5)-k*.7)*.5+.5;const h=lerp(180,620,ph)*eo(seg(lt,.1+k*.06,.5+k*.06));
+        rr(110+k*150,1560-h,120,h,40,k===5?CREAM:INK)}}
+    if(i===4){ // renderizado: boceto → render
+      const R=[110,760,860,860],w=eio(seg(lt,.5,1.7));
+      x.save();x.beginPath();x.rect(R[0],R[1],R[2]*w,R[3]);x.clip();
+      rr(R[0],R[1],R[2],R[3],32,'#E7E3DA');x.fillStyle='#CFC8BA';x.fillRect(R[0],R[1]+620,R[2],R[3]-620);
+      rr(R[0]+500,R[1]+110,260,320,18,'#BFD3DF');rr(R[0]+80,R[1]+500,460,90,36,'#E04016');rr(R[0]+80,R[1]+560,460,160,40,ORANGE);rr(R[0]+600,R[1]+600,160,120,20,INK);
+      x.restore();
+      x.save();x.beginPath();x.rect(R[0]+R[2]*w,R[1]-10,R[2]*(1-w)+20,R[3]+20);x.clip();x.strokeStyle=CREAM;x.lineWidth=4;
+      [[R[0],R[1]+620,R[0]+R[2],R[1]+620]].forEach(([a,b,c2,d])=>{x.beginPath();x.moveTo(a,b);x.lineTo(c2,d);x.stroke()});
+      [[500,110,260,320,18],[80,500,460,220,40],[600,600,160,120,20],[0,0,860,860,32]].forEach(([a,b,cw,ch,r])=>{x.beginPath();x.roundRect(R[0]+a,R[1]+b,cw,ch,r);x.stroke()});
+      x.restore();if(w>0&&w<1){x.fillStyle=ORANGE;x.fillRect(R[0]+R[2]*w-3,R[1]-20,6,R[3]+40)}}
+    x.restore();
+    wipe(lt,2.15,2.4,[INK,CREAM,ORANGE,INK,CREAM][i]);
+    return}
+  // 15.6–17.6 s · remate
+  if(t<17.8){bg(CREAM);
+    txt('un estudio.',90,800,140,800,INK,'left',eo(seg(t,15.6,15.9)),-5);
+    txt('cinco servicios.',90,950,140,800,ORANGE,'left',eo(seg(t,15.9,16.2)),-5);
+    txt('escríbenos por dm',90,1120,48,700,MUTED,'left',seg(t,16.4,16.8),2);
+    for(let k=0;k<5;k++){const a=back(seg(t,16.0+k*.08,16.4+k*.08));rr(90+k*190,1300+(1-cl(a))*200,160,300,40,k===4?ORANGE:INK)}}
+  outro(t,this.dur,false)}}
 };
+// barrido de transición: un módulo de color cubre la pantalla de abajo hacia arriba
+function wipe(t,a,b,col){const v=eio(seg(t,a,b));if(v<=0)return;rr(-40,H-(H+200)*v,W+80,H+400,120,col)}
 
 window.ready=(async()=>{await Promise.all([200,300,500,700,800].map(w=>document.fonts.load(`${w} 40px Manrope`)));return true})();
 window.frame=(id,t,q=.92)=>{x.save();REELS[id].draw(t);x.restore();return c.toDataURL('image/jpeg',q)};
