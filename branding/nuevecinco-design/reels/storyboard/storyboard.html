@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><title>storyboard nuevecinco diseño</title>
+<style>
+@font-face{font-family:Manrope;src:url(../../fuentes/Manrope-Medium.ttf);font-weight:500}
+@font-face{font-family:Manrope;src:url(../../fuentes/Manrope-Bold.ttf);font-weight:700}
+@font-face{font-family:Manrope;src:url(../../fuentes/Manrope-ExtraBold.ttf);font-weight:800}
+html,body{margin:0;background:#fff}
+</style></head><body>
+<canvas id="c" width="2400" height="3320"></canvas>
+<script src="../src/logo.js"></script>
+<script>
+const CREAM='#F2F1EC',INK='#1D1D1B',ORANGE='#FF4B1F',MUTED='#6B6A64',LINE='#D9D7CF',SKY='#BFD3DF';
+const c=document.getElementById('c'),x=c.getContext('2d');
+const PD=new Path2D(LOGO_D),PT=new Path2D(LOGO_TXT);
+const BARS=[[527,587,192,476],[745,587,194,754],[988,587,194,423],[990,1028,194,313],[1210,587,195,320]],DMOD=[1211,923,194,416],LC={x:966,y:964};
+function rr(px,py,w,h,r,fill){x.beginPath();x.roundRect(px,py,w,h,Math.min(r,Math.abs(w)/2,Math.abs(h)/2));x.fillStyle=fill;x.fill()}
+function sr(px,py,w,h,r,col,lw=3,dash){x.save();x.beginPath();x.roundRect(px,py,w,h,r);x.strokeStyle=col;x.lineWidth=lw;if(dash)x.setLineDash(dash);x.stroke();x.restore()}
+function line(a,b,c2,d,col,lw=3,dash){x.save();x.beginPath();x.moveTo(a,b);x.lineTo(c2,d);x.strokeStyle=col;x.lineWidth=lw;if(dash)x.setLineDash(dash);x.stroke();x.restore()}
+function txt(s,px,py,size,weight,color,align='left',track=0){x.save();x.font=`${weight} ${size}px Manrope`;x.fillStyle=color;x.textAlign=align;x.letterSpacing=track+'px';x.fillText(s,px,py);x.restore()}
+function wrap(s,px,py,maxw,size,weight,color,lh){x.save();x.font=`${weight} ${size}px Manrope`;const w=s.split(' ');let l='',yy=py;for(const t of w){const tt=l?l+' '+t:t;if(x.measureText(tt).width>maxw&&l){txt(l,px,yy,size,weight,color);l=t;yy+=lh}else l=tt}txt(l,px,yy,size,weight,color);x.restore();return yy}
+function logo(cx,cy,s,o={}){const ink=o.ink??INK;x.save();x.translate(cx,cy);x.scale(s,s);x.translate(-LC.x,-LC.y);
+  BARS.forEach((b,i)=>{if(o.skip&&o.skip.includes(i))return;rr(b[0],b[1],b[2],b[3],48,ink)});
+  if(!o.noD){rr(DMOD[0],DMOD[1]+(o.dy||0),DMOD[2],DMOD[3],48,ORANGE);x.save();x.translate(0,o.dy||0);x.fillStyle=CREAM;x.fill(PD);x.restore()}
+  if(o.txt){x.fillStyle=ORANGE;x.fill(PT)}x.restore()}
+function arrow(a,b,c2,d,col=ORANGE,lw=6){line(a,b,c2,d,col,lw);const an=Math.atan2(d-b,c2-a);x.save();x.fillStyle=col;x.beginPath();x.moveTo(c2,d);x.lineTo(c2-30*Math.cos(an-.45),d-30*Math.sin(an-.45));x.lineTo(c2-30*Math.cos(an+.45),d-30*Math.sin(an+.45));x.fill();x.restore()}
+function overlay(s,fw,fh,col=INK){x.save();x.font=`800 36px Manrope`;x.letterSpacing='-1px';const w=x.measureText(s).width;x.restore();rr(30,30,w+40,64,14,'rgba(242,241,236,.92)');txt(s,50,74,36,800,col,'left',-1)}
+
+// viñetas: cada una dibuja dentro de un marco 9:16 de 640×1138
+const FW=640,FH=1138;
+const SHOTS=[
+ {t:'0–3 s',title:'gancho · la ciudad',svc:'fooh',action:'Los bloques del 9|5 salen gigantes del pavimento frente a un edificio real; el bloque naranja cae del cielo y completa el logo.',cam:'Plano bajo desde la acera, leve push-in.',ovl:'lo diseñamos.',tool:'Nano Banana 2.1 → MiniMax H3',cr:'12',
+  draw(){x.fillStyle='#DDE6EA';x.fillRect(0,0,FW,FH);
+   // edificio
+   rr(40,140,560,760,0,'#C9C4BA');for(let r=0;r<6;r++)for(let k=0;k<4;k++)rr(80+k*130,180+r*115,90,80,6,'#A9B4BA');
+   x.fillStyle='#9C978E';x.fillRect(0,900,FW,FH-900);line(0,900,FW,900,INK,3);
+   for(let k=0;k<5;k++)rr(k*150-20,1010,90,14,7,CREAM);
+   // bloques gigantes
+   x.save();x.translate(0,0);logo(330,700,.42,{dy:-520});x.restore();
+   arrow(520,190,520,330);arrow(250,1040,250,920,INK,5);
+   // personas para escala
+   [[90,880],[560,885]].forEach(([px,py])=>{rr(px-10,py-60,20,60,10,INK);x.beginPath();x.arc(px,py-75,12,0,7);x.fillStyle=INK;x.fill()});
+   overlay('todo lo que tu marca muestra,')}},
+ {t:'3–6 s',title:'identidad de marca',svc:'producto héroe',action:'El logo en 3D mate sobre piso crema; una banda de luz lo barre de izquierda a derecha.',cam:'Órbita lenta de 20°, cámara a la altura de los bloques.',ovl:'identidad de marca',tool:'Render 3D ya hecho → Kling 3.0 std',cr:'6,25',
+  draw(){x.fillStyle=CREAM;x.fillRect(0,0,FW,FH);x.fillStyle='#E7E4DC';x.fillRect(0,760,FW,FH-760);
+   logo(330,620,.44);x.save();x.globalAlpha=.18;x.fillStyle='#fff';x.beginPath();x.moveTo(180,100);x.lineTo(300,100);x.lineTo(470,1100);x.lineTo(350,1100);x.fill();x.restore();
+   x.save();x.globalAlpha=.12;x.fillStyle=INK;x.beginPath();x.ellipse(330,830,250,30,0,0,7);x.fill();x.restore();
+   x.save();x.strokeStyle=ORANGE;x.lineWidth=5;x.setLineDash([14,12]);x.beginPath();x.ellipse(330,940,260,60,0,Math.PI*.1,Math.PI*.9);x.stroke();x.restore();arrow(140,975,110,955);
+   overlay('identidad de marca')}},
+ {t:'6–9 s',title:'renderizado',svc:'transformación',action:'Un boceto de línea de una sala se convierte en render fotorrealista con el sofá modular naranja y luz de tarde.',cam:'Dolly frontal lento; barrido de transformación de izquierda a derecha.',ovl:'del boceto al render',tool:'Nano Banana 2.1 → MiniMax H3 (inicio boceto, fin render)',cr:'12',
+  draw(){x.fillStyle=CREAM;x.fillRect(0,0,FW,FH);const m=320;
+   x.save();x.beginPath();x.rect(m,0,FW-m,FH);x.clip();x.fillStyle='#E7E3DA';x.fillRect(0,0,FW,FH);x.fillStyle='#CFC8BA';x.fillRect(0,760,FW,FH);
+   rr(380,250,200,330,14,SKY);rr(60,640,420,90,30,'#E04016');rr(60,700,420,150,36,ORANGE);rr(500,760,110,90,16,INK);
+   x.save();x.globalAlpha=.25;x.fillStyle='#fff';x.beginPath();x.moveTo(380,580);x.lineTo(580,580);x.lineTo(640,1000);x.lineTo(300,1000);x.fill();x.restore();x.restore();
+   x.save();x.beginPath();x.rect(0,0,m,FH);x.clip();x.fillStyle='#fff';x.fillRect(0,0,FW,FH);
+   line(0,760,FW,760,INK,3);sr(380,250,200,330,14,INK);line(480,250,480,580,INK,3);sr(60,640,420,210,34,INK);sr(500,760,110,90,16,INK);x.restore();
+   x.fillStyle=ORANGE;x.fillRect(m-4,0,8,FH);txt('boceto',40,1090,30,700,MUTED,'left',3);txt('render',FW-40,1090,30,700,ORANGE,'right',3);
+   overlay('renderizado')}},
+ {t:'9–12 s',title:'animación',svc:'restyle',action:'Los módulos del reel resumen saltan y laten, redibujados como objetos 3D tipo juguete, brillantes y suaves.',cam:'Igual que el reel original: Genjutsu conserva el movimiento.',ovl:'animación',tool:'Genjutsu Style · Rounded Toy CGI (sobre reel-resumen.mp4)',cr:'por confirmar',
+  draw(){x.fillStyle=ORANGE;x.fillRect(0,0,FW,FH);
+   const hs=[300,520,380,600,440,330];hs.forEach((h,k)=>{const px=40+k*98,py=900-h;rr(px,py,80,h,40,k===5?CREAM:INK);x.save();x.globalAlpha=.22;rr(px+12,py+14,18,h-40,9,'#fff');x.restore();
+     x.save();x.globalAlpha=.18;x.fillStyle='#000';x.beginPath();x.ellipse(px+40,915,44,10,0,0,7);x.fill();x.restore()});
+   [[80,250],[280,180],[480,240]].forEach(([a,b])=>{arrow(a,b+60,a,b,CREAM,5)});
+   overlay('animación')}},
+ {t:'12–15 s',title:'diseño web · redes',svc:'producto héroe',action:'Un celular y una laptop flotan girando sobre piso crema; en sus pantallas, el sitio y el feed de Instagram de la marca.',cam:'Órbita lenta alrededor de las pantallas.',ovl:'diseño web · redes sociales',tool:'Nano Banana 2.1 (pantallas) → Kling 3.0 std',cr:'8,25',
+  draw(){x.fillStyle=CREAM;x.fillRect(0,0,FW,FH);
+   x.save();x.translate(60,420);x.rotate(-.08);rr(0,0,420,280,20,INK);rr(14,14,392,252,10,'#fff');rr(30,30,360,90,8,ORANGE);rr(30,135,200,16,8,INK);rr(30,162,160,12,6,LINE);rr(250,135,140,110,8,INK);rr(-30,280,480,22,11,'#2E2E2B');x.restore();
+   x.save();x.translate(400,520);x.rotate(.1);rr(0,0,200,400,34,INK);rr(10,12,180,376,26,'#fff');
+   const cs=[INK,ORANGE,LINE,LINE,INK,ORANGE,INK,LINE,INK];cs.forEach((col,k)=>rr(20+(k%3)*57,80+Math.floor(k/3)*57,52,52,8,col));rr(20,30,30,30,15,ORANGE);x.restore();
+   x.save();x.globalAlpha=.12;x.fillStyle=INK;x.beginPath();x.ellipse(320,1000,260,26,0,0,7);x.fill();x.restore();
+   overlay('diseño web · redes sociales')}},
+ {t:'15–18 s',title:'cierre en loop',svc:'loop',action:'Volvemos a la calle de la toma 1: el logo ya está completo frente al edificio. Entra el nombre y la cuenta. El último cuadro empata con el primero.',cam:'Plano fijo; corte al inicio del reel.',ovl:'un estudio. cinco servicios.',tool:'Edición (sin IA) · música y textos',cr:'0',
+  draw(){x.fillStyle='#DDE6EA';x.fillRect(0,0,FW,FH);rr(40,140,560,760,0,'#C9C4BA');for(let r=0;r<6;r++)for(let k=0;k<4;k++)rr(80+k*130,180+r*115,90,80,6,'#A9B4BA');
+   x.fillStyle='#9C978E';x.fillRect(0,900,FW,FH-900);logo(330,700,.42);
+   rr(60,960,520,150,20,'rgba(242,241,236,.95)');txt('nuevecinco diseño',320,1030,44,800,INK,'center',-1);txt('@nuevecinco.diseno',320,1080,26,500,MUTED,'center',1);
+   x.save();x.strokeStyle=ORANGE;x.lineWidth=6;x.beginPath();x.arc(560,180,40,0.3,5.6);x.stroke();x.restore();arrow(595,200,597,210);
+   overlay('un estudio. cinco servicios.')}}
+];
+
+async function run(){await Promise.all([500,700,800].map(w=>document.fonts.load(w+' 40px Manrope')));
+const W=2400,COLW=720,PADX=60,TOP=330;
+x.fillStyle=CREAM;x.fillRect(0,0,W,c.height);
+// encabezado
+x.save();x.translate(60,70);x.scale(.16,.16);x.translate(-527,-587);BARS.forEach(b=>rr(b[0],b[1],b[2],b[3],48,INK));rr(DMOD[0],DMOD[1],DMOD[2],DMOD[3],48,ORANGE);x.fillStyle=CREAM;x.fill(PD);x.restore();
+txt('storyboard · reel «nuevecinco diseño toma la ciudad»',250,130,52,800,INK,'left',-1);
+txt('15–18 s · 9:16 · 6 tomas · música electrónica mínima 110–125 bpm · textos en manrope extrabold, minúsculas',252,190,30,500,MUTED);
+txt('créditos estimados ≈ 38,5 + genjutsu',W-60,130,34,800,ORANGE,'right');
+SHOTS.forEach((s,i)=>{const col=i%3,row=Math.floor(i/3);const ox=PADX+col*(COLW+60),oy=TOP+row*1500;
+  txt(String(i+1).padStart(2,'0'),ox,oy-20,48,800,ORANGE);txt(s.t,ox+80,oy-22,30,700,MUTED,'left',2);txt(s.title,ox+640,oy-22,30,800,INK,'right');
+  x.save();x.beginPath();x.roundRect(ox,oy,FW,FH,28);x.clip();x.translate(ox,oy);s.draw();x.restore();sr(ox,oy,FW,FH,28,INK,3);
+  let yy=oy+FH+50;yy=wrap(s.action,ox,yy,FW,24,500,INK,32)+40;
+  txt('cámara',ox,yy,20,800,MUTED,'left',2);yy=wrap(s.cam,ox+120,yy,FW-120,22,500,INK,30)+34;
+  txt('herramienta',ox,yy,20,800,MUTED,'left',2);yy=wrap(s.tool,ox+170,yy,FW-170,22,700,INK,30)+34;
+  txt('créditos',ox,yy,20,800,MUTED,'left',2);txt(s.cr,ox+170,yy,22,800,ORANGE)});
+}
+window.done=run();
+</script></body></html>
