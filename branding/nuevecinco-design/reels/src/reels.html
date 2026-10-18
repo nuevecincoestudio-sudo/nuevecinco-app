@@ -349,10 +349,45 @@ REELS.ciudad={dur:16.6,draw(t){
   if(i>0&&t<SC[i]+wp){const k=eio(seg(t,SC[i]-wp,SC[i]+wp));x.save();x.filter='blur(10px)';x.translate(-W*k,0);fns[i-1](t);x.restore();x.save();x.filter='blur(10px)';x.translate(W*(1-k),0);fns[i](t);x.restore();return}
   fns[i](t)}};
 
+// ---------- versión con las imágenes generadas en Higgsfield ----------
+const IMG={};['hf-ciudad','hf-render','hf-pantallas'].forEach(n=>{const im=new Image();im.src='../ia/'+n+'.webp';IMG[n]=im});
+// dibuja la imagen cubriendo la pantalla con zoom z centrado en el punto (fx,fy) normalizado
+function cover(im,z,fx,fy){const s=Math.max(W/im.width,H/im.height)*z,dw=im.width*s,dh=im.height*s;
+  let ox=W/2-fx*dw,oy=H/2-fy*dh;ox=Math.min(0,Math.max(W-dw,ox));oy=Math.min(0,Math.max(H-dh,oy));x.drawImage(im,ox,oy,dw,dh)}
+function band(px,py,w,h){rr(px,py,w,h,24,'rgba(242,241,236,.94)')}
+function flash(t,t0){const k=seg(t,t0,t0+.25);if(k<=0||k>=1)return;x.save();x.globalAlpha=(1-k)*.7;x.fillStyle='#fff';x.fillRect(0,0,W,H);x.restore()}
+const HF={
+ s1(t){x.save();shake(t,1.05,30,.5);const z=lerp(1.9,1.0,eio(seg(t,0,1.1)));cover(IMG['hf-ciudad'],z,.5,lerp(.85,.5,eio(seg(t,0,1.1))));x.restore();flash(t,1.05);
+   band(50,190,0,0);x.save();x.globalAlpha=seg(t,.15,.3);band(50,180,960,250);x.restore();words('todo lo que',90,290,100,INK,t,.2,.1);words('tu marca muestra,',90,400,100,INK,t,.45,.1);
+   {const v=back(seg(t,1.85,2.1));if(v>0){x.save();x.translate(50,1640);x.scale(cl(v),1);rr(0,0,860,170,30,ORANGE);x.restore()}}pop('lo diseñamos.',90,1765,120,800,CREAM,t,1.95);
+   if(t>1.9){x.save();x.globalAlpha=cl(seg(t,1.9,2.1))*.0;x.restore()}},
+ s2(t){CITY.s2(t)},
+ s3(t){const lt=t-SC[2];const p=eio(seg(lt,.35,2.1));cover(IMG['hf-render'],1.75,lerp(0,1,p),.62);
+   const lab=p<.5?'boceto':'render';x.save();x.globalAlpha=1;band(50,180,620,170);x.restore();words('renderizado',90,300,100,INK,t,SC[2]+.1);
+   rr(W-300,1720,240,80,40,p<.5?INK:ORANGE);txt(lab,W-180,1775,40,800,CREAM,'center',1,2)},
+ s4(t){CITY.s4(t)},
+ s5(t){const lt=t-SC[4];const z=lerp(1.25,1.05,eio(seg(lt,0,2.6)));x.save();x.translate(0,Math.sin(lt*2.4)*14);cover(IMG['hf-pantallas'],z,.5,.5);x.restore();
+   for(let i=0;i<7;i++){const k=seg(lt,.8+i*.17,1.8+i*.17);if(k<=0||k>=1)continue;heart(860+Math.sin(i*2+k*6)*70,lerp(1500,700,k),2.4*(1-k*.3),ORANGE)}
+   x.save();band(50,170,800,260);x.restore();words('diseño web ·',90,280,96,INK,t,SC[4]+.1);words('redes sociales',90,390,96,ORANGE,t,SC[4]+.4)},
+ s6(t){const lt=t-SC[5];const z=lerp(1.0,1.9,eio(seg(lt,2.3,3.0)));cover(IMG['hf-ciudad'],z,.5,lerp(.5,.85,eio(seg(lt,2.3,3.0))));
+   x.save();x.globalAlpha=.35*(1-seg(lt,2.2,2.5));x.fillStyle=INK;x.fillRect(0,0,W,H);x.restore();
+   const cp=back(seg(lt,.2,.6))*(1-seg(lt,2.1,2.4));if(cp>0){x.save();x.translate(W/2,1500);x.scale(cl(cp),cl(cp));x.translate(-W/2,-1500);
+     rr(140,1150,800,640,48,CREAM);x.save();x.translate(W/2,1380);x.scale(.36,.36);x.translate(-LC.x,-LC.y);BARS.forEach(b=>rr(b[0],b[1],b[2],b[3],48,INK));rr(DMOD[0],DMOD[1],DMOD[2],DMOD[3],48,ORANGE);x.fillStyle=CREAM;x.fill(PD);x.restore();
+     txt('nuevecinco diseño',W/2,1660,64,800,INK,'center',1,-2);txt('@nuevecinco.diseno',W/2,1730,34,500,MUTED,'center',1,1);x.restore()}
+   if(lt<2.3){x.save();x.globalAlpha=1-seg(lt,2.0,2.3);band(50,170,860,260);x.restore();words('un estudio.',90,280,100,INK,t,SC[5]+.1);words('cinco servicios.',90,390,100,ORANGE,t,SC[5]+.35)}}
+};
+REELS.ciudad_ia={dur:16.6,draw(t){
+  const fns=[HF.s1,HF.s2,HF.s3,HF.s4,HF.s5,HF.s6];
+  let i=SC.findIndex((v,k)=>t>=v&&t<SC[k+1]);if(i<0)i=5;
+  const nxt=SC[i+1],wp=.16;
+  if(i<5&&t>nxt-wp){const k=eio(seg(t,nxt-wp,nxt+wp));x.save();x.filter='blur(10px)';x.translate(-W*k,0);fns[i](t);x.restore();x.save();x.filter='blur(10px)';x.translate(W*(1-k),0);fns[i+1](Math.max(t,nxt));x.restore();return}
+  if(i>0&&t<SC[i]+wp){const k=eio(seg(t,SC[i]-wp,SC[i]+wp));x.save();x.filter='blur(10px)';x.translate(-W*k,0);fns[i-1](t);x.restore();x.save();x.filter='blur(10px)';x.translate(W*(1-k),0);fns[i](t);x.restore();return}
+  fns[i](t)}};
+
 // barrido de transición: un módulo de color cubre la pantalla de abajo hacia arriba
 function wipe(t,a,b,col){const v=eio(seg(t,a,b));if(v<=0)return;rr(-40,H-(H+200)*v,W+80,H+400,120,col)}
 
-window.ready=(async()=>{await Promise.all([200,300,500,700,800].map(w=>document.fonts.load(`${w} 40px Manrope`)));return true})();
+window.ready=(async()=>{await Promise.all([200,300,500,700,800].map(w=>document.fonts.load(`${w} 40px Manrope`)));await Promise.all(Object.values(IMG).map(im=>im.decode()));return true})();
 window.frame=(id,t,q=.92)=>{x.save();REELS[id].draw(t);x.restore();return c.toDataURL('image/jpeg',q)};
 window.durs=Object.fromEntries(Object.entries(REELS).map(([k,v])=>[k,v.dur]));
 </script></body></html>
