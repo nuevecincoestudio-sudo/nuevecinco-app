@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><title>reels nuevecinco diseño</title>
+<style>
+@font-face{font-family:Manrope;src:url(../../fuentes/Manrope-ExtraLight.ttf);font-weight:200}
+@font-face{font-family:Manrope;src:url(../../fuentes/Manrope-Light.ttf);font-weight:300}
+@font-face{font-family:Manrope;src:url(../../fuentes/Manrope-Medium.ttf);font-weight:500}
+@font-face{font-family:Manrope;src:url(../../fuentes/Manrope-Bold.ttf);font-weight:700}
+@font-face{font-family:Manrope;src:url(../../fuentes/Manrope-ExtraBold.ttf);font-weight:800}
+html,body{margin:0;background:#111}
+canvas{display:block;width:540px;height:960px}
+</style></head><body>
+<canvas id="c" width="1080" height="1920"></canvas>
+<script src="logo.js"></script>
+<script>
+const W=1080,H=1920;
+const CREAM='#F2F1EC',INK='#1D1D1B',ORANGE='#FF4B1F',MUTED='#6B6A64',MUTED_D='#A3A199',LINE='#D9D7CF';
+const c=document.getElementById('c'),x=c.getContext('2d');
+const PD=new Path2D(LOGO_D),PT=new Path2D(LOGO_TXT);
+// módulos del logo en coordenadas del SVG original
+const BARS=[[527,587,192,476],[745,587,194,754],[988,587,194,423],[990,1028,194,313],[1210,587,195,320]];
+const DMOD=[1211,923,194,416];
+const LC={x:966,y:964}; // centro del símbolo
+
+const cl=v=>Math.max(0,Math.min(1,v));
+const seg=(t,a,b)=>cl((t-a)/(b-a));
+const eo=v=>1-Math.pow(1-v,3);                 // ease out
+const eio=v=>v<.5?4*v*v*v:1-Math.pow(-2*v+2,3)/2; // ease in-out
+const back=v=>{const s=1.6;v=v-1;return v*v*((s+1)*v+s)+1};
+const lerp=(a,b,v)=>a+(b-a)*v;
+
+function rr(px,py,w,h,r,fill){x.beginPath();x.roundRect(px,py,w,h,Math.min(r,w/2,h/2));x.fillStyle=fill;x.fill()}
+function txt(s,px,py,size,weight,color,align='left',alpha=1,track=0){
+  x.save();x.globalAlpha*=alpha;x.font=`${weight} ${size}px Manrope`;x.fillStyle=color;x.textAlign=align;x.textBaseline='alphabetic';
+  x.letterSpacing=track+'px';x.fillText(s,px,py);x.restore()}
+function bg(col){x.fillStyle=col;x.fillRect(0,0,W,H)}
+
+// dibuja el logo: cx,cy centro del símbolo en pantalla; s escala; o.p progreso de construcción 0..1; o.ink color de módulos
+function logo(cx,cy,s,o={}){
+  const p=o.p??1,ink=o.ink??INK,showTxt=o.txt??true,ta=o.ta??1;
+  x.save();x.translate(cx,cy);x.scale(s,s);x.translate(-LC.x,-LC.y);
+  BARS.forEach((b,i)=>{const v=eo(seg(p,i*.12,i*.12+.35));if(v<=0)return;const h=b[3]*v;
+    x.globalAlpha=1;rr(b[0],b[1]+b[3]-h,b[2],h,48,ink)});
+  const dv=seg(p,.62,.9);if(dv>0){const yoff=(1-back(dv))*-260;x.save();x.globalAlpha=cl(dv*3);
+    rr(DMOD[0],DMOD[1]+yoff,DMOD[2],DMOD[3],48,ORANGE);x.translate(0,yoff);x.globalAlpha=cl((p-.85)/.15);x.fillStyle=CREAM;x.fill(PD);x.restore()}
+  if(showTxt&&ta>0){x.globalAlpha=ta;x.fillStyle=ORANGE;x.fill(PT)}
+  x.restore()}
+
+// cierre común: últimos ~2.2 s de cada reel
+function outro(t,dur,dark){
+  const a=seg(t,dur-2.4,dur-1.9);if(a<=0)return false;
+  x.save();x.globalAlpha=a;bg(dark?INK:CREAM);x.restore();
+  const k=seg(t,dur-2.2,dur-1.0);
+  logo(W/2,800,0.62,{p:Math.min(1,.5+k*.5),ink:dark?CREAM:INK,ta:seg(t,dur-1.4,dur-1.0)});
+  txt('nuevecinco diseño',W/2,1330,64,800,dark?CREAM:INK,'center',seg(t,dur-1.2,dur-.8),-1);
+  txt('@nuevecinco.diseno',W/2,1400,30,500,dark?MUTED_D:MUTED,'center',seg(t,dur-1.0,dur-.6),1);
+  return true}
+
+// barra de servicio con módulo naranja
+function chip(label,px,py,a,dark){x.save();x.globalAlpha=a;x.translate((1-eo(a))*-60,0);
+  rr(px,py-46,22,56,8,ORANGE);txt(label,px+52,py,58,800,dark?CREAM:INK,'left',1,-1);x.restore()}
+
+const REELS={
+// 1 · presentación
+presentacion:{dur:12,draw(t){
+  bg(CREAM);
+  const move=eio(seg(t,4.6,5.6));
+  const cy=lerp(900,520,move),s=lerp(.95,.5,move);
+  logo(W/2,cy,s,{p:seg(t,.2,3.2),ta:seg(t,3.2,4.0)});
+  const items=['diseño web','mobiliario','identidad de marca','avatares virtuales','render con ia'];
+  items.forEach((it,i)=>chip(it,150,1010+i*118,eo(seg(t,5.8+i*.45,6.4+i*.45)),false));
+  txt('diseño que se arma por módulos',W/2,1720,40,500,MUTED,'center',seg(t,8.6,9.2));
+  outro(t,this.dur,false)}},
+
+// 2 · diseño web
+web:{dur:11,draw(t){
+  bg(INK);
+  txt('diseño web',90,250,104,800,CREAM,'left',eo(seg(t,.1,.7)),-3);
+  txt('sitios que se arman por módulos',94,320,38,500,MUTED_D,'left',seg(t,.5,1.1));
+  // teléfono
+  const pa=eo(seg(t,.8,1.6)),px=W/2-250,py=420+(1-pa)*120,pw=500,ph=1040;
+  x.save();x.globalAlpha=pa;rr(px-14,py-14,pw+28,ph+28,72,'#2E2E2B');rr(px,py,pw,ph,60,CREAM);
+  x.beginPath();x.roundRect(px,py,pw,ph,60);x.clip();
+  const scroll=eio(seg(t,5.2,7.0))*-520;x.translate(0,scroll);
+  const B=[ // [x,y,w,h,color,start]
+    [24,24,140,36,INK,1.6],[380,30,96,24,LINE,1.7],
+    [24,90,452,300,ORANGE,1.9],[24,410,300,30,INK,2.3],[24,454,420,18,LINE,2.4],[24,484,380,18,LINE,2.5],
+    [24,530,160,52,INK,2.7],
+    [24,620,218,260,INK,3.0],[258,620,218,180,INK,3.15],[258,816,218,64,ORANGE,3.3],
+    [24,900,452,18,LINE,3.5],[24,930,400,18,LINE,3.6],
+    [24,980,452,420,INK,3.8],[24,1420,218,200,ORANGE,4.0],[258,1420,218,200,INK,4.1]];
+  B.forEach(([bx,by,bw,bh,col,st])=>{const v=back(seg(t,st,st+.45));if(v<=0)return;
+    x.save();x.globalAlpha=cl(v);const sc=lerp(.6,1,cl(v));x.translate(px+bx+bw/2,py+by+bh/2);x.scale(sc,sc);rr(-bw/2,-bh/2,bw,bh,Math.min(16,bh/2),col);x.restore()});
+  x.save();x.globalAlpha=1;x.translate(px+24+70+0,py+90+150);x.restore();
+  txt('hola',px+50,py+300,56,800,INK,'left',seg(t,2.2,2.6),-1);
+  x.restore();
+  txt('rápidos · claros · fáciles de editar',W/2,1640,40,700,CREAM,'center',seg(t,7.2,7.8),1);
+  outro(t,this.dur,true)}},
+
+// 3 · mobiliario
+mobiliario:{dur:11,draw(t){
+  bg(CREAM);
+  txt('mobiliario',90,250,104,800,INK,'left',eo(seg(t,.1,.7)),-3);
+  txt('piezas modulares que se pueden construir',94,320,38,500,MUTED,'left',seg(t,.5,1.1));
+  // 6 módulos que cambian de forma: [x,y,w,h] dentro de una caja 760x900 con base en y=1400
+  const S=[
+    [[0,0,60,0],[0,0,60,0],[0,0,60,0],[0,0,60,0],[0,0,60,0],[0,0,60,0]],
+    // estantería
+    [[100,500,48,900],[612,500,48,900],[100,500,560,40],[100,780,560,40],[100,1060,560,40],[100,1360,560,40]],
+    // banca
+    [[60,1060,640,70],[60,1130,60,270],[640,1130,60,270],[110,1180,540,40],[290,1000,180,60],[60,1060,0,70]],
+    // silla
+    [[230,640,60,760],[230,1040,320,60],[490,1100,60,300],[230,1100,0,60],[290,680,200,200],[230,1040,0,60]]];
+  const cols=[INK,INK,INK,INK,ORANGE,INK];
+  const keys=[[1.0,1],[1.0,1],[4.0,2],[6.8,3]];
+  let A=S[0],Bv=S[1],v=0;
+  const tr=[[.9,1.9,0,1],[4.0,4.9,1,2],[6.8,7.7,2,3]];
+  let cur=null;
+  for(const [a,b,i,j] of tr){if(t>=a){A=S[i];Bv=S[j];v=eio(seg(t,a,b));cur=j}}
+  if(t<.9){A=S[0];Bv=S[0];v=0}
+  const ox=160,oy=0;
+  for(let k=0;k<6;k++){const r=A[k].map((q,n)=>lerp(q,Bv[k][n],v));if(r[2]<1||r[3]<1)continue;
+    const col=(cur===2&&k===4)||(cur===3&&k===4)?ORANGE:(cur===1&&k===3?ORANGE:INK);
+    rr(ox+r[0],oy+r[1],r[2],r[3],Math.min(24,r[2]/2,r[3]/2),col)}
+  rr(120,1420,840,6,3,LINE);
+  const lab=t<3.9?'estantería':t<6.7?'banca':'silla';
+  const la=t<3.9?seg(t,1.8,2.2)*(1-seg(t,3.6,3.9)):t<6.7?seg(t,4.8,5.2)*(1-seg(t,6.4,6.7)):seg(t,7.6,8.0);
+  txt(lab,W/2,1530,54,700,INK,'center',la,4);
+  outro(t,this.dur,false)}},
+
+// 4 · identidad de marca
+identidad:{dur:11,draw(t){
+  bg(CREAM);
+  txt('identidad',90,250,104,800,INK,'left',eo(seg(t,.1,.7)),-3);
+  txt('sistemas, no solo logos',94,320,38,500,MUTED,'left',seg(t,.5,1.1));
+  const ph1=1-seg(t,3.4,3.8);
+  if(ph1>0){x.save();x.globalAlpha=ph1;
+    // retícula de construcción
+    x.strokeStyle=ORANGE;x.lineWidth=2;
+    const g=seg(t,.6,1.8);
+    [460,700,940,1180,1420].forEach((yy,i)=>{x.beginPath();x.moveTo(80,yy);x.lineTo(80+(W-160)*eo(cl(g*1.5-i*.1)),yy);x.stroke()});
+    [240,440,640,840].forEach((xx,i)=>{x.beginPath();x.moveTo(xx,440);x.lineTo(xx,440+1000*eo(cl(g*1.5-i*.1)));x.stroke()});
+    logo(W/2,950,.8,{p:seg(t,1.4,3.0),ta:0});
+    x.restore()}
+  // paleta
+  const pa=seg(t,3.6,4.6),pb=1-seg(t,6.0,6.4);
+  if(pa>0&&pb>0){x.save();x.globalAlpha=pb;
+    [[CREAM,'crema','#F2F1EC',INK],[INK,'carbón','#1D1D1B',CREAM],[ORANGE,'naranja','#FF4B1F',INK]].forEach(([col,n,hx,tc],i)=>{
+      const v=back(seg(t,3.6+i*.2,4.3+i*.2));const hh=900*cl(v);
+      x.save();if(col===CREAM){x.strokeStyle=LINE;x.lineWidth=4;x.beginPath();x.roundRect(110+i*300,1440-hh,260,hh,40);x.stroke()}
+      rr(110+i*300,1440-hh,260,hh,40,col);
+      txt(n,140+i*300,1440-hh+80,40,800,tc,'left',seg(t,4.4,4.8));txt(hx,140+i*300,1400,28,500,tc,'left',seg(t,4.6,5));x.restore()});
+    x.restore()}
+  // tipografía
+  const ta=seg(t,6.3,6.8);
+  if(ta>0){const ws=[200,300,500,700,800];const wi=Math.min(4,Math.floor(seg(t,6.8,8.6)*5));
+    txt('Aa',W/2,1180,520,ws[wi],INK,'center',ta,-10);
+    txt('manrope · '+ws[wi],W/2,1340,40,700,ORANGE,'center',ta,4)}
+  outro(t,this.dur,false)}},
+
+// 5 · render con ia + avatares
+ia:{dur:12.5,draw(t){
+  bg(INK);
+  const p1=1-seg(t,5.0,5.4);
+  if(p1>0){x.save();x.globalAlpha=p1;
+    txt('render con ia',90,250,104,800,CREAM,'left',eo(seg(t,.1,.7)),-3);
+    txt('del boceto al render en minutos',94,320,38,500,MUTED_D,'left',seg(t,.5,1.1));
+    const R=[110,480,860,960]; // caja
+    const wipe=eio(seg(t,2.4,4.2));
+    // render (relleno) recortado por el barrido
+    x.save();x.beginPath();x.rect(R[0],R[1],R[2]*wipe,R[3]);x.clip();
+    rr(R[0],R[1],R[2],R[3],32,'#E7E3DA');
+    x.fillStyle='#CFC8BA';x.beginPath();x.moveTo(R[0],R[1]+700);x.lineTo(R[0]+R[2],R[1]+700);x.lineTo(R[0]+R[2],R[1]+R[3]);x.lineTo(R[0],R[1]+R[3]);x.fill();
+    rr(R[0]+500,R[1]+120,260,360,18,'#BFD3DF');rr(R[0]+500,R[1]+120,260,360,18,'rgba(255,255,255,.25)');
+    rr(R[0]+80,R[1]+560,460,170,40,ORANGE);rr(R[0]+80,R[1]+500,460,90,36,'#E04016');
+    rr(R[0]+600,R[1]+620,160,110,20,INK);
+    x.fillStyle='rgba(255,255,255,.18)';x.beginPath();x.moveTo(R[0]+500,R[1]+480);x.lineTo(R[0]+760,R[1]+480);x.lineTo(R[0]+860,R[1]+900);x.lineTo(R[0]+380,R[1]+900);x.fill();
+    x.restore();
+    // boceto (líneas) en lo que falta
+    x.save();x.beginPath();x.rect(R[0]+R[2]*wipe,R[1]-10,R[2]*(1-wipe)+20,R[3]+20);x.clip();
+    const dr=seg(t,.8,2.2);x.strokeStyle=CREAM;x.lineWidth=4;x.setLineDash([2400]);x.lineDashOffset=2400*(1-dr);
+    const L=[[R[0],R[1]+700,R[0]+R[2],R[1]+700],[R[0]+500,R[1]+120,R[0]+760,R[1]+120],[R[0]+760,R[1]+120,R[0]+760,R[1]+480],[R[0]+760,R[1]+480,R[0]+500,R[1]+480],[R[0]+500,R[1]+480,R[0]+500,R[1]+120],[R[0]+630,R[1]+120,R[0]+630,R[1]+480]];
+    L.forEach(([a,b,cc,d])=>{x.beginPath();x.moveTo(a,b);x.lineTo(cc,d);x.stroke()});
+    x.beginPath();x.roundRect(R[0]+80,R[1]+500,460,230,40);x.stroke();x.beginPath();x.roundRect(R[0]+600,R[1]+620,160,110,20);x.stroke();
+    x.beginPath();x.roundRect(R[0],R[1],R[2],R[3],32);x.stroke();
+    x.restore();
+    if(wipe>0&&wipe<1){x.fillStyle=ORANGE;x.fillRect(R[0]+R[2]*wipe-3,R[1]-20,6,R[3]+40)}
+    txt('boceto',R[0],R[1]+R[3]+80,34,700,MUTED_D,'left',1-wipe,3);
+    txt('render',R[0]+R[2],R[1]+R[3]+80,34,700,ORANGE,'right',wipe,3);
+    x.restore()}
+  // avatares
+  const p2=seg(t,5.3,5.8);
+  if(p2>0){x.save();x.globalAlpha=p2*(1-seg(t,9.6,10.1));
+    txt('avatares virtuales',90,250,96,800,CREAM,'left',1,-3);
+    txt('la cara digital de tu marca',94,320,38,500,MUTED_D,'left',1);
+    const a=back(seg(t,5.5,6.3)),cx=W/2,cy=980;
+    x.save();x.translate(cx,cy);x.scale(a,a);
+    rr(-300,260,600,420,120,ORANGE);       // hombros
+    rr(-70,180,140,140,30,'#E04016');      // cuello
+    rr(-200,-260,400,480,140,CREAM);       // cabeza
+    x.save();x.beginPath();x.roundRect(-200,-260,400,480,140);x.clip();x.fillStyle=INK;x.fillRect(-200,-260,400,110);x.restore(); // pelo
+    const blink=((t*1.0)%2.6)>2.45?.12:1;
+    rr(-110,-60,52,90*blink,26,INK);rr(58,-60,52,90*blink,26,INK); // ojos
+    const talk=t>7.2&&t<9.4?(.4+.6*Math.abs(Math.sin(t*14))):.25;
+    rr(-60,90,120,60*talk+10,20,INK);      // boca
+    x.restore();
+    const ba=seg(t,7.0,7.4);
+    x.save();x.globalAlpha*=ba;rr(150,1460,780,130,40,CREAM);
+    txt('hola, soy el avatar de tu marca',540,1540,40,700,INK,'center',1);x.restore();
+    x.restore()}
+  outro(t,this.dur,true)}}
+};
+
+window.ready=(async()=>{await Promise.all([200,300,500,700,800].map(w=>document.fonts.load(`${w} 40px Manrope`)));return true})();
+window.frame=(id,t,q=.92)=>{x.save();REELS[id].draw(t);x.restore();return c.toDataURL('image/jpeg',q)};
+window.durs=Object.fromEntries(Object.entries(REELS).map(([k,v])=>[k,v.dur]));
+</script></body></html>
